@@ -106,26 +106,34 @@ function verifyOtp(req, res, next) {
     if (mobileNo && userOtp) {
       const verifyOtp = "SELECT * from users WHERE mobile_no = ?";
       const verifyOtpParams = [mobileNo];
-      db.query(verifyOtp, verifyOtpParams, (error, user) => {
-        if (error) {
+      db.query(verifyOtp, verifyOtpParams, (err, user) => {
+        if (err) {
           res.send("SQL error")
         } else if (user.length) {
           if (user[0].otp === userOtp) {
-            const tokenData = jwt.sign(
-              {
-                data: {
-                  id: user[0].id,
-                  mobileNo: user[0].username
-                },
-              },
-              process.env.jwtSecretKey
-            );
-            const responseData = {
-              status: "success",
-              code: 200,
-              token: tokenData
-            }
-            res.status(200).json(responseData);
+            const updateOtp = "UPDATE users SET otp = ? WHERE id = ?";
+            const updateOtpParams = ['', user[0].id];
+            db.query(updateOtp, updateOtpParams, async (error, successData) => {
+              if (error) {
+                res.send("SQL error")
+              } else {
+                const tokenData = jwt.sign(
+                  {
+                    data: {
+                      id: user[0].id,
+                      mobileNo: user[0].username
+                    },
+                  },
+                  process.env.jwtSecretKey
+                );
+                const responseData = {
+                  status: "success",
+                  code: 200,
+                  token: tokenData
+                }
+                res.status(200).json(responseData);
+              }
+            })
           } else {
             const responseData = {
               status: "success",
