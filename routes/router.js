@@ -6,7 +6,7 @@ router.get("/", (req, res) => {
     res.send("App Workes");
 });
 
-router.post('/login',  loginController.login);
-router.post('/signup',  loginController.signUp);
+router.post('/login', loginController.login);
+router.post('/verifyOtp', loginController.verifyOtp);
 
 module.exports = router;
