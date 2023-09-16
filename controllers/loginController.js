@@ -3,25 +3,35 @@ const jwt = require('jsonwebtoken');
 const fast2sms = require("fast-two-sms");
 
 let otp = '';
-const message = `This is your OTP to Login - ${otp}`;
+const message = `This is your OTP to Login - ${otp}. Otp will expire in 2 mins`;
 
 async function login(req, res, next) {
   try {
-    const mobileNo = req.body.mobile;
+    const mobileNo = req.body.mobileNo;
     const username = req.body.username || '';
     if (mobileNo) {
-      const getUser = "SELECT * from users WHERE mobile_no = ?";
+      const getUser = "SELECT id from users WHERE mobile_no = ?";
       const getUserParams = [mobileNo];
       otp = Math.floor(1000 + Math.random() * 9000);
       db.query(getUser, getUserParams, async (err, user) => {
         if (err) {
-          res.send("SQL error")
+          const errorData = {
+            status: "failure",
+            code: 500,
+            error: err
+          }
+          res.status(500).send(errorData);
         } else if (user.length) {
-          const updateOtp = "UPDATE users SET otp = ? WHERE id = ?";
-          const updateOtpParams = [otp, user[0].id];
+          const updateOtp = "UPDATE users SET otp = ?, otp_created_time = ? WHERE id = ?";
+          const updateOtpParams = [otp, new Date(), user[0].id];
           db.query(updateOtp, updateOtpParams, async (error, successData) => {
             if (error) {
-              res.send("SQL error")
+              const errorData = {
+                status: "failure",
+                code: 500,
+                error
+              }
+              res.status(500).send(errorData);
             } else {
               const response = await fast2sms.sendMessage({
                 authorization: process.env.FAST2SMS,
@@ -34,14 +44,20 @@ async function login(req, res, next) {
                 message: "otp send successfully"
               }
               res.send(responseData);
+              console.log("otp" + otp);
             }
           })
         } else {
-          const updateOtp = "INSERT INTO users (username, mobile_no, otp) Values (?,?,?)";
-          const updateOtpParams = [username, mobileNo, otp];
+          const updateOtp = "INSERT INTO users (username, mobile_no, otp, otp_created_time) Values (?,?,?,?)";
+          const updateOtpParams = [username, mobileNo, otp, new Date()];
           db.query(updateOtp, updateOtpParams, async (error, successData) => {
             if (error) {
-              res.send("SQL error");
+              const errorData = {
+                status: "failure",
+                code: 500,
+                error
+              }
+              res.status(500).send(errorData);
             } else {
               const response = await fast2sms.sendMessage({
                 authorization: process.env.FAST2SMS,
@@ -53,16 +69,27 @@ async function login(req, res, next) {
                 code: 200,
                 message: "otp send successfully"
               }
+              console.log("otp" + otp);
               res.send(responseData);
             }
           });
         }
       })
     } else {
-      res.send("invalid input");
+      const errorData = {
+        status: "failure",
+        code: 400,
+        error: "invalid input"
+      }
+      res.status(400).send(errorData);
     }
   } catch (err) {
-    res.send("error");
+    const errorData = {
+      status: "failure",
+      code: 400,
+      error: err
+    }
+    res.status(400).send(errorData);
   }
 }
 
@@ -101,56 +128,100 @@ async function login(req, res, next) {
 
 function verifyOtp(req, res, next) {
   try {
-    const mobileNo = req.body.mobile;
+    const mobileNo = req.body.mobileNo;
     const userOtp = req.body.otp;
     if (mobileNo && userOtp) {
       const verifyOtp = "SELECT * from users WHERE mobile_no = ?";
       const verifyOtpParams = [mobileNo];
       db.query(verifyOtp, verifyOtpParams, (err, user) => {
         if (err) {
-          res.send("SQL error")
+          const errorData = {
+            status: "failure",
+            code: 500,
+            error: err
+          }
+          res.status(500).send(errorData);
         } else if (user.length) {
           if (user[0].otp === userOtp) {
-            const updateOtp = "UPDATE users SET otp = ? WHERE id = ?";
-            const updateOtpParams = ['', user[0].id];
-            db.query(updateOtp, updateOtpParams, async (error, successData) => {
-              if (error) {
-                res.send("SQL error")
-              } else {
-                const tokenData = jwt.sign(
-                  {
-                    data: {
-                      id: user[0].id,
-                      mobileNo: user[0].username
+            const otpExpireTime = new Date().getTime() - user[0].otp_created_time.getTime();
+            //otp expires after 2mins
+            if (otpExpireTime && otpExpireTime < 120000) {
+              const updateOtp = "UPDATE users SET otp = ?, otp_created_time = ? WHERE id = ?";
+              const updateOtpParams = [null, null, user[0].id];
+              db.query(updateOtp, updateOtpParams, async (error, successData) => {
+                if (error) {
+                  const errorData = {
+                    status: "failure",
+                    code: 500,
+                    error
+                  }
+                  res.status(500).send(errorData);
+                } else {
+                  const tokenData = jwt.sign(
+                    {
+                      data: {
+                        id: user[0].id,
+                        username: user[0].username,
+                        mobileNo: user[0].mobile_no
+                      },
                     },
-                  },
-                  process.env.jwtSecretKey
-                );
-                const responseData = {
-                  status: "success",
-                  code: 200,
-                  token: tokenData
+                    process.env.jwtSecretKey
+                  );
+                  const responseData = {
+                    status: "success",
+                    code: 200,
+                    data: {
+                      token: tokenData,
+                      userId: user[0].id,
+                      username: user[0].username,
+                      mobileNo: user[0].mobile_no,
+                      profilePicture: user[0].profile_pic
+                    }
+                  }
+                  res.status(200).json(responseData);
                 }
-                res.status(200).json(responseData);
+              })
+            } else {
+              const errorData = {
+                status: "failure",
+                code: 400,
+                error: "Otp expired"
               }
-            })
+              res.status(400).send(errorData);
+            }
+
           } else {
             const responseData = {
-              status: "success",
-              code: 200,
-              message: "Otp not matched"
+              status: "failure",
+              code: 400,
+              error: "Invalid Otp"
             }
-            res.send(responseData);
+            res.status(400).send(responseData);
           }
         } else {
-          res.send("error")
+          const errorData = {
+            status: "failure",
+            code: 404,
+            message: "User not found"
+          }
+          res.status(404).send(errorData);
         }
       })
     } else {
-      res.send("invalid input");
+      const errorData = {
+        status: "failure",
+        code: 400,
+        error: "invalid input"
+      }
+      res.status(400).send(errorData);
     }
-  } catch (e) {
-    res.send("error");
+  } catch (err) {
+    const errorData = {
+      status: "failure",
+      code: 400,
+      error: err
+    }
+    res.status(400).send(errorData);
   }
 }
 
