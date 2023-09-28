@@ -4,7 +4,7 @@ const app = express();
 const cors = require('cors');
 require('dotenv').config();
 const morgan = require('morgan');
-const port = process.env.PORT || 3000;
+const port = process.env.PORT || 3001;
 const bodyParser = require('body-parser');
 const peers = require('./webRtc/peers');
 

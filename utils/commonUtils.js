@@ -6,7 +6,7 @@ function verifyJwt(token) {
             if (err) {
                 return false;
             } else {
-                return true;
+                return decoded;
             }
         });
     }

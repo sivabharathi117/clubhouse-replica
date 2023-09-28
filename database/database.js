@@ -1,6 +1,6 @@
-var mysql = require("mysql");
+const mysql = require("mysql");
 
-var server = mysql.createConnection({
+const server = mysql.createConnection({
   host: "localhost",
   user: "root",
   password: "ss#123",
