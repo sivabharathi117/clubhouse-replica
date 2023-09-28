@@ -24,11 +24,11 @@ function initializePeers(server) {
         messages[room] = messages[room] || []
 
         // console.log('rooooooom', rooms);
-        console.log('messages', messages);
+        // console.log('messages', messages);
 
         // connectedPeers.set(socket.id, socket)
 
-        console.log(socket.id, room)
+        // console.log(socket.id, room)
         socket.emit('connection-success', {
             success: socket.id,
             peerCount: rooms[room].size,
@@ -66,7 +66,7 @@ function initializePeers(server) {
         }
 
         socket.on('new-message', (data) => {
-            console.log('new-message', JSON.parse(data.payload))
+            // console.log('new-message', JSON.parse(data.payload))
 
             messages[room] = [...messages[room], JSON.parse(data.payload)]
         })
@@ -98,14 +98,14 @@ function initializePeers(server) {
             for (const [socketID, _socket] of _connectedPeers.entries()) {
                 // don't send to self
                 if (socketID !== data.socketID.local) {
-                    console.log('online-peer', data.socketID, socketID)
+                    // console.log('online-peer', data.socketID, socketID)
                     socket.emit('online-peer', socketID)
                 }
             }
         })
 
         socket.on('offer', data => {
-            console.log(data)
+            // console.log(data)
             const _connectedPeers = rooms[room]
             for (const [socketID, socket] of _connectedPeers.entries()) {
                 // don't send to self
@@ -121,11 +121,11 @@ function initializePeers(server) {
         })
 
         socket.on('answer', (data) => {
-            console.log(data)
+            // console.log(data)
             const _connectedPeers = rooms[room]
             for (const [socketID, socket] of _connectedPeers.entries()) {
                 if (socketID === data.socketID.remote) {
-                    console.log('Answer', socketID, data.socketID, data.payload.type)
+                    // console.log('Answer', socketID, data.socketID, data.payload.type)
                     socket.emit('answer', {
                         sdp: data.payload.sdp,
                         socketID: data.socketID.local
@@ -147,7 +147,7 @@ function initializePeers(server) {
         // })
 
         socket.on('candidate', (data) => {
-            console.log(data)
+            // console.log(data)
             const _connectedPeers = rooms[room]
             // send candidate to the other peer(s) if any
             for (const [socketID, socket] of _connectedPeers.entries()) {
