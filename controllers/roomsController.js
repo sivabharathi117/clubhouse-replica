@@ -3,9 +3,10 @@ const db = require('./../database/database');
 function joinRoom(userId, roomId, socket) {
     return new Promise((resolve, reject) => {
         if (userId && socket && roomId) {
-            socket = JSON.stringify(socket);
-            const connectUser = "INSERT INTO connected_users (room_id, user_id, socket) VALUES (?,?,?)";
-            const connectUserParam = [roomId, userId, socket];
+            const socketId = socket.id;
+            // const socketData = JSON.parse(JSON.stringify(socket));
+            const connectUser = "INSERT INTO connected_users (room_id, user_id, socket, socket_id) VALUES (?,?,?,?)";
+            const connectUserParam = [roomId, userId, "{}", socketId];
             db.query(connectUser, connectUserParam, (err, connectUserResponse) => {
                 if (err) {
                     reject({ error: err, message: "Database issue" })
