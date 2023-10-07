@@ -1,4 +1,5 @@
 const db = require('./../database/database');
+const commonUtils = require('./../utils/commonUtils');
 
 function joinRoom(userId, roomId, socket) {
     return new Promise((resolve, reject) => {
@@ -89,11 +90,14 @@ function getRoomsList(req, res, next) {
                             commonUtils.handleErrorResponse(res, 500, err)
                         } else if (usersList.length) {
                             roomsList = roomsList.map((room) => {
+                                let userCount = 0;
                                 usersList.forEach((user) => {
                                     if (user.room_id === room.roomId) {
                                         room.users.push(user)
+                                        userCount++;
                                     }
                                 })
+                                room.userCount = userCount;
                                 return room
                             })
 
