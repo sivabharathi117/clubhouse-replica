@@ -7,7 +7,7 @@ function getConnectedUsers(roomId) {
             const connectedUserParam = [roomId];
             db.query(connectedUser, connectedUserParam, (err, connectedUserResponse) => {
                 if (err) {
-                    reject({ error: err, message: "Database issue" })
+                    reject({ error: err, message: "Database issue when getting online users" })
                 } else {
                     connectedUserResponse = connectedUserResponse.map((res) => {
                         res.socket = JSON.parse(res.socket)
@@ -29,7 +29,7 @@ function getUserDetail(userId) {
             const getUserParam = [userId];
             db.query(getUser, getUserParam, (err, getUserResponse) => {
                 if (err) {
-                    reject({ error: err, message: "Database issue" })
+                    reject({ error: err, message: "Database issue when getting user detail" })
                 } else if (getUserResponse.length) {
                     resolve(getUserResponse[0])
                 } else {
@@ -49,13 +49,13 @@ function disconnectUser(socketID) {
             const disconnectUserParam = [socketID];
             db.query(disconnectUser, disconnectUserParam, (err, response) => {
                 if (err) {
-                    reject({ error: err, message: "Database issue" })
+                    reject({ error: err, message: "Database issue when disconnecting" })
                 } else {
                     const getUserDetail = "SELECT u.id, u.username, u.profile_pic, u.mobile_no, cu.socket_id from users u INNER JOIN connected_users cu ON u.id = cu.user_id WHERE cu.socket_id = ? ";
                     const getUserDetailParam = [socketID];
                     db.query(getUserDetail, getUserDetailParam, (err, userDetail) => {
                         if (err) {
-                            reject({ error: err, message: "Database issue" })
+                            reject({ error: err, message: "Database issue when getting disconnected user detail" })
                         } else if (userDetail.length) {
                             resolve(userDetail[0])
                         } else {
@@ -65,7 +65,7 @@ function disconnectUser(socketID) {
                 }
             });
         } else {
-            reject({ error: "UserId is not present", message: "Unable to get User Details" })
+            reject({ error: "socketID is not present", message: "Unable to disconnect user" })
         }
     })
 }
