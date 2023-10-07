@@ -47,48 +47,23 @@ function checkValidRoom(req, res, next) {
             const checkRoomParams = [roomUrl, roomId];
             db.query(checkRoomSql, checkRoomParams, (err, roomDetail) => {
                 if (err) {
-                    const errorData = {
-                        status: "failure",
-                        code: 500,
-                        error: err
-                    }
-                    res.status(500).send(errorData);
+                    commonUtils.handleErrorResponse(res, 500, err)
                 } else if (roomDetail.length) {
-                    const responseData = {
-                        status: "success",
-                        code: 200,
-                        message: "Room Exist",
-                        data: {
-                            roomUrl: roomDetail[0].roomUrl,
-                            roomId: roomDetail[0].roomId
-                        }
+                    const data = {
+                        roomUrl: roomDetail[0].roomUrl,
+                        roomId: roomDetail[0].roomId
                     }
-                    res.send(responseData);
+                    commonUtils.handleSuccessResponse(res, 200, data, "Room Exist");
                 } else {
-                    const errorData = {
-                        status: "failure",
-                        code: 404,
-                        error: "Room not found"
-                    }
-                    res.status(404).send(errorData);
+                    commonUtils.handleErrorResponse(res, 404, "Room not found")
                 }
             })
         } else {
-            const errorData = {
-                status: "failure",
-                code: 400,
-                error: "invalid input"
-            }
-            res.status(400).send(errorData);
+            commonUtils.handleErrorResponse(res, 400, "invalid input")
         }
     }
     catch (err) {
-        const errorData = {
-            status: "failure",
-            code: 400,
-            error: err
-        }
-        res.status(400).send(errorData);
+        commonUtils.handleErrorResponse(res, 400, err)
     }
 }
 
@@ -100,12 +75,7 @@ function getRoomsList(req, res, next) {
             const connectedRoomsParams = [1];
             db.query(connectedRooms, connectedRoomsParams, (err, response) => {
                 if (err) {
-                    const errorData = {
-                        status: "failure",
-                        code: 500,
-                        error: err
-                    }
-                    res.status(500).send(errorData);
+                    commonUtils.handleErrorResponse(res, 500, err)
                 } else if (response.length) {
                     const roomsId = response.map(room => room.roomId);
                     let roomsList = response.map((room) => {
@@ -116,12 +86,7 @@ function getRoomsList(req, res, next) {
                     const userListParam = [roomsId];
                     db.query(userListSql, userListParam, (err, usersList) => {
                         if (err) {
-                            const errorData = {
-                                status: "failure",
-                                code: 500,
-                                error: err
-                            }
-                            res.status(500).send(errorData);
+                            commonUtils.handleErrorResponse(res, 500, err)
                         } else if (usersList.length) {
                             roomsList = roomsList.map((room) => {
                                 usersList.forEach((user) => {
@@ -131,53 +96,28 @@ function getRoomsList(req, res, next) {
                                 })
                                 return room
                             })
-                            const responseData = {
-                                status: "success",
-                                code: 200,
-                                data: {
-                                    rooms: roomsList
-                                }
+
+                            const data = {
+                                rooms: roomsList
                             }
-                            res.send(responseData);
+                            commonUtils.handleSuccessResponse(res, 200, data);
                         } else {
-                            const responseData = {
-                                status: "success",
-                                code: 200,
-                                data: {
-                                    rooms: roomsList
-                                }
+                            const data = {
+                                rooms: roomsList
                             }
-                            res.send(responseData);
+                            commonUtils.handleSuccessResponse(res, 200, data);
                         }
                     });
                 } else {
-                    const responseData = {
-                        status: "success",
-                        code: 200,
-                        message: "You don't joined any room",
-                        data: {
-                            rooms: []
-                        }
-                    }
-                    res.send(responseData);
+                    commonUtils.handleSuccessResponse(res, 200, data, "You don't joined any room");
                 }
             })
         } else {
-            const errorData = {
-                status: "failure",
-                code: 400,
-                error: "User Id not valid"
-            }
-            res.status(400).send(errorData);
+            commonUtils.handleErrorResponse(res, 400, "User Id not valid")
         }
     }
     catch (err) {
-        const errorData = {
-            status: "failure",
-            code: 400,
-            error: err
-        }
-        res.status(400).send(errorData);
+        commonUtils.handleErrorResponse(res, 400, err)
     }
 }
 
@@ -190,41 +130,21 @@ function createRoom(req, res, next) {
             const createRoomParams = [roomUrl, roomName];
             db.query(createRoomSql, createRoomParams, (err, response) => {
                 if (err) {
-                    const errorData = {
-                        status: "failure",
-                        code: 500,
-                        error: err
-                    }
-                    res.status(500).send(errorData);
+                    commonUtils.handleErrorResponse(res, 500, err)
                 } else {
-                    const responseData = {
-                        status: "success",
-                        code: 201,
-                        message: "Room created successfully",
-                        data: {
-                            roomUrl,
-                            roomId: response.insertId
-                        }
+                    const data = {
+                        roomUrl,
+                        roomId: response.insertId
                     }
-                    res.send(responseData);
+                    commonUtils.handleSuccessResponse(res, 201, data, "Room created successfully");
                 }
             })
         } else {
-            const errorData = {
-                status: "failure",
-                code: 400,
-                error: "invalid input"
-            }
-            res.status(400).send(errorData);
+            commonUtils.handleErrorResponse(res, 400, "invalid input")
         }
     }
     catch (err) {
-        const errorData = {
-            status: "failure",
-            code: 400,
-            error: err
-        }
-        res.status(400).send(errorData);
+        commonUtils.handleErrorResponse(res, 400, err)
     }
 };
 
