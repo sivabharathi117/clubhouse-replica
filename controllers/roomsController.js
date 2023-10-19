@@ -129,9 +129,10 @@ function createRoom(req, res, next) {
     try {
         const roomUrl = req.body.roomUrl;
         const roomName = req.body.roomName;
+        const userId = req.userDetails.id;
         if (roomUrl && roomName) {
-            const createRoomSql = "INSERT INTO rooms (room_url,room_name) VALUES (?,?)";
-            const createRoomParams = [roomUrl, roomName];
+            const createRoomSql = "INSERT INTO rooms (room_url,room_name,created_by) VALUES (?,?,?)";
+            const createRoomParams = [roomUrl, roomName, userId];
             db.query(createRoomSql, createRoomParams, (err, response) => {
                 if (err) {
                     commonUtils.handleErrorResponse(res, 500, err)
