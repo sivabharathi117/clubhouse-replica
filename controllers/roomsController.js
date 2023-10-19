@@ -73,7 +73,7 @@ function getRoomsList(req, res, next) {
         const userId = req.userDetails.id;
         if (userId) {
             const connectedRooms = "SELECT r.room_id AS roomId , r.room_name AS roomName FROM rooms r INNER JOIN connected_users cu ON r.room_id = cu.room_id WHERE cu.user_id = ?";
-            const connectedRoomsParams = [1];
+            const connectedRoomsParams = [userId];
             db.query(connectedRooms, connectedRoomsParams, (err, response) => {
                 if (err) {
                     commonUtils.handleErrorResponse(res, 500, err)
@@ -83,7 +83,7 @@ function getRoomsList(req, res, next) {
                         room.users = [];
                         return room
                     });
-                    const userListSql = "SELECT u.id,u.username, u.profile_pic, u.mobile_no, cu.room_id from users u INNER JOIN connected_users cu ON u.id = cu.user_id WHERE cu.room_id IN (?)";
+                    const userListSql = "SELECT u.id,u.username, u.profile_pic AS profileImage, u.mobile_no, cu.room_id from users u INNER JOIN connected_users cu ON u.id = cu.user_id WHERE cu.room_id IN (?)";
                     const userListParam = [roomsId];
                     db.query(userListSql, userListParam, (err, usersList) => {
                         if (err) {
@@ -113,7 +113,7 @@ function getRoomsList(req, res, next) {
                         }
                     });
                 } else {
-                    commonUtils.handleSuccessResponse(res, 200, data, "You don't joined any room");
+                    commonUtils.handleSuccessResponse(res, 200, {}, "You don't joined any room");
                 }
             })
         } else {

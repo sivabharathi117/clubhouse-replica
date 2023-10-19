@@ -1,4 +1,5 @@
 const jwt = require('jsonwebtoken');
+const fast2sms = require("fast-two-sms");
 
 function verifyJwt(token) {
     if (token) {
@@ -32,4 +33,17 @@ function handleSuccessResponse(res, code, data = {}, message = "Success") {
     res.status(code).send(successData);
 }
 
-module.exports = { verifyJwt, handleErrorResponse, handleSuccessResponse };
+async function sendSMS(message, mobileNo) {
+    try {
+        return await fast2sms.sendMessage({
+            authorization: process.env.FAST2SMS,
+            message,
+            numbers: mobileNo,
+        });
+    } catch (e) {
+        throw new Error(e)
+    }
+
+}
+
+module.exports = { verifyJwt, handleErrorResponse, handleSuccessResponse, sendSMS };

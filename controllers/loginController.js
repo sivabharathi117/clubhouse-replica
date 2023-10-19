@@ -24,12 +24,8 @@ async function login(req, res, next) {
             if (error) {
               commonUtils.handleErrorResponse(res, 500, error)
             } else {
-              const response = await fast2sms.sendMessage({
-                authorization: process.env.FAST2SMS,
-                message,
-                numbers: [mobileNo],
-              });
-              commonUtils.handleSuccessResponse(res, 200, {}, "otp send successfully")
+              // const response = await commonUtils.sendSMS(message, [mobileNo]);
+              commonUtils.handleSuccessResponse(res, 200, { otp }, "otp send successfully") // need to br changed
               console.log("otp  ==> " + otp + " for mobile ==> " + mobileNo);
             }
           })
@@ -41,13 +37,9 @@ async function login(req, res, next) {
               commonUtils.handleErrorResponse(res, 500, error)
 
             } else {
-              const response = await fast2sms.sendMessage({
-                authorization: process.env.FAST2SMS,
-                message,
-                numbers: [mobileNo],
-              });
+              // const response = await commonUtils.sendSMS(message, [mobileNo]);
               console.log("otp  ==> " + otp + " for mobile ==> " + mobileNo);
-              commonUtils.handleSuccessResponse(res, 200, {}, "otp send successfully")
+              commonUtils.handleSuccessResponse(res, 200, { otp }, "otp send successfully") // need to br changed
             }
           });
         }
