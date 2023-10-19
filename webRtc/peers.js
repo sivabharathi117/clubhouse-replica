@@ -45,16 +45,21 @@ function initializePeers(server) {
                 //   peerCount: connectedPeers.size,
                 // })
                 const broadcast = async () => {
-                    const _connectedUser = await userController.getConnectedUsers(roomId);
+                    try {
+                        const _connectedUser = await userController.getConnectedUsers(roomId);
 
-                    // for (let user of _connectedUser) {
-                    // if (socketID !== socket.id) {
-                    // peers.to(room).emit('joined-peers', userDetail)
-                    peers.to(room).emit('joined-peers', {
-                        peerCount: _connectedUser.length, //connectedPeers.size,
-                    })
-                    // }
-                    // }
+                        // for (let user of _connectedUser) {
+                        // if (socketID !== socket.id) {
+                        // peers.to(room).emit('joined-peers', userDetail)
+                        peers.to(room).emit('joined-peers', {
+                            peerCount: _connectedUser.length, //connectedPeers.size,
+                        })
+                        // }
+                        // }
+                    } catch (error) {
+                        console.log(error)
+                    }
+
                 }
                 broadcast()
 
@@ -63,16 +68,20 @@ function initializePeers(server) {
                 //   socketID: socketID
                 // })
                 const disconnectedPeer = async (socketID, userDetail) => {
-                    const _connectedUser = await userController.getConnectedUsers(roomId);
-                    // for (const user of _connectedUser) {
-                    peers.to(room).emit('peer-disconnected', {
-                        peerCount: _connectedUser.length,
-                        socketID,
-                        username: userDetail.username,
-                        profilePic: userDetail.profile_pic,
-                        userId: userDetail.id
-                    })
-                    // }
+                    try {
+                        const _connectedUser = await userController.getConnectedUsers(roomId);
+                        // for (const user of _connectedUser) {
+                        peers.to(room).emit('peer-disconnected', {
+                            peerCount: _connectedUser.length,
+                            socketID,
+                            username: userDetail.username,
+                            profilePic: userDetail.profile_pic,
+                            userId: userDetail.id
+                        })
+                        // }
+                    } catch (error) {
+                        console.log(error)
+                    }
                 }
 
                 socket.on('new-message', (data) => {
@@ -102,61 +111,77 @@ function initializePeers(server) {
 
 
                 socket.on('onlinePeers', async (data) => {
-                    const _connectedUser = await userController.getConnectedUsers(roomId);
-                    for (let user of _connectedUser) {
-                        // don't send to self
-                        // if (socketID !== data.socketID.local) {
-                        socket.emit('online-peer',
-                            {
-                                socketID: user.socket_id,
-                                // username: user.username,
-                                // profilePic: user.profile_pic,
-                                userId: user.id
-                            }
-                        )
-                        // socket.emit('online-peer', user.socket.id)
-                        // }
+                    try {
+                        const _connectedUser = await userController.getConnectedUsers(roomId);
+                        for (let user of _connectedUser) {
+                            // don't send to self
+                            // if (socketID !== data.socketID.local) {
+                            socket.emit('online-peer',
+                                {
+                                    socketID: user.socket_id,
+                                    // username: user.username,
+                                    // profilePic: user.profile_pic,
+                                    userId: user.id
+                                }
+                            )
+                            // socket.emit('online-peer', user.socket.id)
+                            // }
+                        }
+                    } catch (error) {
+                        console.log(error);
                     }
                 })
 
                 socket.on('offer', async data => {
-                    const _connectedUser = await userController.getConnectedUsers(roomId);
-                    for (let user of _connectedUser) {
-                        // don't send to self
-                        // if (user.socket_id === data.socketID.remote) {
-                        socket.emit('offer', {
-                            sdp: data.payload.sdp,
-                            socketID: data.socketID.local,
-                            userId: user.id
+                    try {
+                        const _connectedUser = await userController.getConnectedUsers(roomId);
+                        for (let user of _connectedUser) {
+                            // don't send to self
+                            // if (user.socket_id === data.socketID.remote) {
+                            socket.emit('offer', {
+                                sdp: data.payload.sdp,
+                                socketID: data.socketID.local,
+                                userId: user.id
+                            }
+                            )
+                            // }
                         }
-                        )
-                        // }
+                    } catch (error) {
+                        console.log(error);
                     }
                 })
 
                 socket.on('answer', async (data) => {
-                    const _connectedUser = await userController.getConnectedUsers(roomId);
-                    for (let user of _connectedUser) {
-                        if (user.socket_id === data.socketID.remote) {
-                            socket.emit('answer', {
-                                sdp: data.payload.sdp,
-                                socketID: data.socketID.local
+                    try {
+                        const _connectedUser = await userController.getConnectedUsers(roomId);
+                        for (let user of _connectedUser) {
+                            if (user.socket_id === data.socketID.remote) {
+                                socket.emit('answer', {
+                                    sdp: data.payload.sdp,
+                                    socketID: data.socketID.local
+                                }
+                                )
                             }
-                            )
                         }
+                    } catch (error) {
+                        console.log(error);
                     }
                 })
 
                 socket.on('candidate', async (data) => {
-                    const _connectedUser = await userController.getConnectedUsers(roomId);
-                    // send candidate to the other peer(s) if any
-                    for (let user of _connectedUser) {
-                        if (user.socket_id === data.socketID.remote) {
-                            socket.emit('candidate', {
-                                candidate: data.payload,
-                                socketID: data.socketID.local
-                            })
+                    try {
+                        const _connectedUser = await userController.getConnectedUsers(roomId);
+                        // send candidate to the other peer(s) if any
+                        for (let user of _connectedUser) {
+                            if (user.socket_id === data.socketID.remote) {
+                                socket.emit('candidate', {
+                                    candidate: data.payload,
+                                    socketID: data.socketID.local
+                                })
+                            }
                         }
+                    } catch (error) {
+                        console.log(error);
                     }
                 })
             }
