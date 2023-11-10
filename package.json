@@ -21,7 +21,8 @@
     "fast-two-sms": "^3.0.0",
     "jsonwebtoken": "^9.0.1",
     "mysql": "^2.18.1",
-    "socket.io": "^4.7.2"
+    "socket.io": "^4.7.2",
+    "uuid": "^9.0.1"
   },
   "devDependencies": {
     "morgan": "^1.10.0",

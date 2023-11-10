@@ -128,4 +128,31 @@ function getUser(req, res, next) {
     }
 }
 
-module.exports = { getConnectedUsers, getUserDetail, disconnectUser, editUser, getUser };
+function getPersonalDetails(req, res) {
+    try {
+        const userId = req.userDetails.id;
+        if (userId) {
+            const getDetailsSql = "SELECT id as userId, username, mobile_no as mobileNo, profile_pic as profilePicture FROM users WHERE id = ?";
+            const getDetailsParams = [userId];
+
+            db.query(getDetailsSql, getDetailsParams, (err, result) => {
+                if (err) {
+                    commonUtils.handleErrorResponse(res, 500, err);
+                } else {
+                    if (result.length === 1) {
+                        const userDetails = result[0];
+                        commonUtils.handleSuccessResponse(res, 200, userDetails, "User Details fetched successfully");
+                    } else {
+                        commonUtils.handleErrorResponse(res, 404, "User not found");
+                    }
+                }
+            });
+        } else {
+            commonUtils.handleErrorResponse(res, 400, "Invalid input");
+        }
+    } catch (err) {
+        commonUtils.handleErrorResponse(res, 500, err);
+    }
+}
+
+module.exports = { getConnectedUsers, getUserDetail, disconnectUser, editUser, getUser,getPersonalDetails };

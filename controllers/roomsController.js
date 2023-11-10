@@ -1,60 +1,77 @@
 const db = require('./../database/database');
 const commonUtils = require('./../utils/commonUtils');
+const uuid = require('uuid');
 
-function joinRoom(userId, roomId, socket) {
-    return new Promise((resolve, reject) => {
-        if (userId && socket && roomId) {
-            const socketId = socket.id;
+function joinRoom(req, res, next) {
+    try {
+        const userId = req.body.userId;
+        const roomId = req.body.roomId;
+        if (userId && roomId) {
+            const socketId = "TEST-SOCKET";
+
             const getConnectedUser = "SELECT id FROM connected_users WHERE room_id = ? AND user_id = ?";
-            const getConnectedUserParam = [roomId, userId];
-            db.query(getConnectedUser, getConnectedUserParam, (err, response) => {
+            const getConnectedUserParams = [roomId, userId];
+
+            db.query(getConnectedUser, getConnectedUserParams, (err, response) => {
                 if (err) {
-                    reject({ error: err, message: "Database issue" })
+                    commonUtils.handleErrorResponse(res, 500, err);
                 } else if (response.length) {
                     const updateUser = "UPDATE connected_users SET is_online = 1, socket_id = ? WHERE id = ?";
-                    const updateUserParam = [socketId, response[0].id]
-                    db.query(updateUser, updateUserParam, (err, updateUserResponse) => {
+                    const updateUserParams = [socketId, response[0].id];
+
+                    db.query(updateUser, updateUserParams, (err, updateUserResponse) => {
                         if (err) {
-                            reject({ error: err, message: "Database issue" })
+                            commonUtils.handleErrorResponse(res, 500, err);
                         } else {
-                            resolve("success")
+                            commonUtils.handleSuccessResponse(res, 200, "User Joined successfully");
                         }
                     });
                 } else {
-                    // const socketData = JSON.parse(JSON.stringify(socket));
                     const connectUser = "INSERT INTO connected_users (room_id, user_id, socket, socket_id) VALUES (?,?,?,?)";
-                    const connectUserParam = [roomId, userId, "{}", socketId];
-                    db.query(connectUser, connectUserParam, (err, connectUserResponse) => {
+                    const connectUserParams = [roomId, userId, "{}", socketId];
+
+                    db.query(connectUser, connectUserParams, (err, connectUserResponse) => {
                         if (err) {
-                            reject({ error: err, message: "Database issue" })
+                            commonUtils.handleErrorResponse(res, 500, err);
                         } else {
-                            resolve("success")
+                            if(!!req.body.joinRoom){
+                                updateRoomInfo(req, res);
+                            }else{
+                                commonUtils.handleSuccessResponse(res, 200, "User Joined successfully");
+                            }
                         }
                     });
                 }
-            })
+            });
         } else {
-            reject({ error: "Invalid input", message: "Unable to connect" })
+            commonUtils.handleErrorResponse(res, 400, "Invalid input");
         }
-    })
+    } catch (err) {
+        commonUtils.handleErrorResponse(res, 500, err);
+    }
 }
 
 function checkValidRoom(req, res, next) {
     try {
-        const roomUrl = req.body.roomUrl;
+        // const roomUrl = req.body.roomUrl;
         const roomId = req.body.roomId;
-        if (roomUrl && roomId) {
-            const checkRoomSql = "SELECT room_id AS roomId ,room_url AS roomUrl FROM rooms WHERE room_url = ? AND room_id = ?";
-            const checkRoomParams = [roomUrl, roomId];
+        const userId = req.userDetails.id;
+        if (roomId) {
+            const checkRoomSql = "SELECT room_id AS roomId,room_name AS roomName ,room_url AS roomUrl FROM rooms WHERE room_id = ?";
+            const checkRoomParams = [roomId];
             db.query(checkRoomSql, checkRoomParams, (err, roomDetail) => {
                 if (err) {
                     commonUtils.handleErrorResponse(res, 500, err)
                 } else if (roomDetail.length) {
-                    const data = {
+                    const body = {
                         roomUrl: roomDetail[0].roomUrl,
-                        roomId: roomDetail[0].roomId
+                        roomName: roomDetail[0].roomName,
+                        roomId,
+                        userId,
+                        joinRoom : true
                     }
-                    commonUtils.handleSuccessResponse(res, 200, data, "Room Exist");
+                    // commonUtils.handleSuccessResponse(res, 200, data, "Room Exist");
+                    joinRoom({body}, res, next);
                 } else {
                     commonUtils.handleErrorResponse(res, 404, "Room not found")
                 }
@@ -62,8 +79,7 @@ function checkValidRoom(req, res, next) {
         } else {
             commonUtils.handleErrorResponse(res, 400, "invalid input")
         }
-    }
-    catch (err) {
+    } catch (err) {
         commonUtils.handleErrorResponse(res, 400, err)
     }
 }
@@ -72,7 +88,9 @@ function getRoomsList(req, res, next) {
     try {
         const userId = req.userDetails.id;
         if (userId) {
-            const connectedRooms = "SELECT r.room_id AS roomId , r.room_name AS roomName FROM rooms r INNER JOIN connected_users cu ON r.room_id = cu.room_id WHERE cu.user_id = ?";
+            const connectedRooms = `SELECT r.room_id AS roomId , r.room_name AS roomName, r.room_url AS roomURL 
+                                           FROM rooms r 
+                                           INNER JOIN connected_users cu ON r.room_id = cu.room_id WHERE cu.user_id = ?`;
             const connectedRoomsParams = [userId];
             db.query(connectedRooms, connectedRoomsParams, (err, response) => {
                 if (err) {
@@ -119,17 +137,16 @@ function getRoomsList(req, res, next) {
         } else {
             commonUtils.handleErrorResponse(res, 400, "User Id not valid")
         }
-    }
-    catch (err) {
+    } catch (err) {
         commonUtils.handleErrorResponse(res, 400, err)
     }
 }
 
 function createRoom(req, res, next) {
     try {
-        const roomUrl = req.body.roomUrl;
         const roomName = req.body.roomName;
         const userId = req.userDetails.id;
+        const roomUrl = uuid.v4();
         if (roomUrl && roomName) {
             const createRoomSql = "INSERT INTO rooms (room_url,room_name,created_by) VALUES (?,?,?)";
             const createRoomParams = [roomUrl, roomName, userId];
@@ -137,20 +154,78 @@ function createRoom(req, res, next) {
                 if (err) {
                     commonUtils.handleErrorResponse(res, 500, err)
                 } else {
-                    const data = {
-                        roomUrl,
+                    /*const body = {
+                        roomUrl: roomUrl,
                         roomId: response.insertId
                     }
-                    commonUtils.handleSuccessResponse(res, 201, data, "Room created successfully");
+                    commonUtils.handleSuccessResponse(res, 201, data, "Room created successfully");*/
+                    joinRoom({body: {userId, roomId: response.insertId}}, res, next);
+
                 }
             })
         } else {
             commonUtils.handleErrorResponse(res, 400, "invalid input")
         }
-    }
-    catch (err) {
+    } catch (err) {
         commonUtils.handleErrorResponse(res, 400, err)
     }
-};
+}
 
-module.exports = { joinRoom, createRoom, checkValidRoom, getRoomsList }
+function updateRoom(req, res, next) {
+    try {
+        const roomName = req.body.roomName;
+        const roomId = req.body.roomId;
+        if (roomName && roomId) {
+            const updateRoomSql = "UPDATE rooms SET room_name = ? WHERE room_id = ?";
+            const updateRoomParams = [roomName, roomId];
+            db.query(updateRoomSql, updateRoomParams, (err, response) => {
+                if (err) {
+                    commonUtils.handleErrorResponse(res, 500, err);
+                } else {
+                    if (response.affectedRows === 0) {
+                        commonUtils.handleErrorResponse(res, 404, "Room not found");
+                    } else {
+                        const data = {
+                            roomId
+                        };
+                        commonUtils.handleSuccessResponse(res, 200, data, "Room updated successfully");
+                    }
+                }
+            });
+        } else {
+            commonUtils.handleErrorResponse(res, 400, "Invalid input");
+        }
+    } catch (err) {
+        commonUtils.handleErrorResponse(res, 500, err);
+    }
+}
+
+function updateRoomInfo(req, res) {
+    const data = {
+        roomId: req.body.roomId,
+        roomName: req.body.roomName,
+        roomURL: req.body.roomUrl,
+        users: [],
+    };
+
+    const roomId = [req.body.roomId];
+
+    const userListSql = `SELECT u.id, u.username, u.profile_pic AS profileImage, u.mobile_no, cu.room_id
+                        FROM users u
+                        INNER JOIN connected_users cu ON u.id = cu.user_id
+                        WHERE cu.room_id IN (?)`;
+
+    const userListParam = [[roomId]];
+    db.query(userListSql, userListParam, (err, usersList) => {
+        if (err) {
+            commonUtils.handleErrorResponse(res, 500, err);
+        } else {
+            data.users = usersList;
+            data.userCount = usersList.length;
+            commonUtils.handleSuccessResponse(res, 200, data);
+        }
+    });
+}
+
+
+module.exports = { createRoom, updateRoom, checkValidRoom, getRoomsList}

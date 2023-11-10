@@ -7,7 +7,7 @@ const auth = require('./../middleware/auth');
 
 
 router.get("/", (req, res) => {
-    res.send("App Workes");
+    res.send("App Works");
 });
 
 //login
@@ -16,11 +16,13 @@ router.post('/verifyOtp', loginController.verifyOtp);
 
 //rooms
 router.post('/createRoom', auth, roomsController.createRoom);
-router.get('/checkValidRoom', auth, roomsController.checkValidRoom);
+router.put('/updateRoom', auth, roomsController.updateRoom);
+router.post('/checkValidRoom', auth, roomsController.checkValidRoom);
 router.get('/roomsList', auth, roomsController.getRoomsList);
 
 //users
 router.put('/user/:id', auth, userController.editUser);
 router.get('/user/:id', auth, userController.getUser);
+router.get('/getPersonalDetails', auth, userController.getPersonalDetails);
 
 module.exports = router;
