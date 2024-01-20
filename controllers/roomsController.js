@@ -88,9 +88,10 @@ function getRoomsList(req, res, next) {
     try {
         const userId = req.userDetails.id;
         if (userId) {
-            const connectedRooms = `SELECT r.room_id AS roomId , r.room_name AS roomName, r.room_url AS roomURL 
-                                           FROM rooms r 
-                                           INNER JOIN connected_users cu ON r.room_id = cu.room_id WHERE cu.user_id = ?`;
+            const connectedRooms = `SELECT r.room_id AS roomId , r.room_name AS roomName, r.room_url AS roomURL,
+                                    r.room_image_url AS roomImageUrl, r.destination_address AS destinationAddress, r.date_of_journey AS dateOfJourney
+                                    FROM rooms r 
+                                    INNER JOIN connected_users cu ON r.room_id = cu.room_id WHERE cu.user_id = ?`;
             const connectedRoomsParams = [userId];
             db.query(connectedRooms, connectedRoomsParams, (err, response) => {
                 if (err) {
@@ -145,16 +146,20 @@ function getRoomsList(req, res, next) {
 function createRoom(req, res, next) {
     try {
         const roomName = req.body.roomName;
+        const roomImageUrl = req.body.roomImageUrl;
+        const destinationAddress = req.body.destinationAddress;
+        const dateOfJourney = req.body.dateOfJourney;
         const userId = req.userDetails.id;
         const roomUrl = uuid.v4();
-        if (roomUrl && roomName) {
-            const createRoomSql = "INSERT INTO rooms (room_url,room_name,created_by) VALUES (?,?,?)";
-            const createRoomParams = [roomUrl, roomName, userId];
+        if (roomUrl && roomImageUrl && destinationAddress && dateOfJourney && roomName) {
+            const createRoomSql = "INSERT INTO rooms (room_url, room_name, created_by, room_image_url, destination_address, date_of_journey) VALUES (?,?,?,?,?,?);";
+            const createRoomParams = [roomUrl, roomName, userId, roomImageUrl, destinationAddress, dateOfJourney];
             db.query(createRoomSql, createRoomParams, (err, response) => {
                 if (err) {
                     commonUtils.handleErrorResponse(res, 500, err)
                 } else {
                     /*const body = {
+
                         roomUrl: roomUrl,
                         roomId: response.insertId
                     }
