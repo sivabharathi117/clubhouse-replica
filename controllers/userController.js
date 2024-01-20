@@ -1,6 +1,7 @@
 const db = require('./../database/database');
 const commonUtils = require('./../utils/commonUtils');
-const peers = require('../webRtc/peers');
+const {socketIO} = require('../webRtc/peers');
+const { queryRunner } = require('../database/db');
 
 function getConnectedUsers(roomId) {
     return new Promise((resolve, reject) => {
