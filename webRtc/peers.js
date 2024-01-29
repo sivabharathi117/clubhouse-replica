@@ -227,6 +227,7 @@ function initializePeers(server) {
 
         /* To notify song streaming done */
         socket.on('eventEnd', () => {
+            console.log('eventEndreceived=======================>')
             peers.emit('event-End', {})
         })
 
