@@ -1,9 +1,9 @@
 var io = require('socket.io')
-({path: '/io/webrtc'});
+    ({ path: '/io/webrtc' });
 
 const peers = io.of('/webrtcPeer');
 const db = require('./../database/database');
-const {queryRunner} = require('./../database/db')
+const { queryRunner } = require('./../database/db')
 let connectedDevices = 0;
 
 function initializePeers(server) {
@@ -62,8 +62,8 @@ function initializePeers(server) {
                                     console.log(`There is an No existing users id in the room ${data.roomId}`)
                                 } else {
                                     const userIds = response.map(item => item.userId)
-                                    socket.emit('existing-peer', {userId: userIds});
-                                    socket.broadcast.in(data.roomId).emit('existing-peer', {userId: [parseInt(socket?.handshake?.query?.userId)]})
+                                    socket.emit('existing-peer', { userId: userIds });
+                                    socket.broadcast.in(data.roomId).emit('existing-peer', { userId: [parseInt(socket?.handshake?.query?.userId)] })
                                     peers.to(data.roomId).emit('online-peer', {
                                         socketID: data.socketID,
                                         userId: parseInt(socket?.handshake?.query?.userId)
@@ -110,9 +110,9 @@ function initializePeers(server) {
         /* Send Offer Data to Room*/
         socket.on('offer', data => {
             const socketIdsInRoom = Array.from(peers.adapter.rooms.get(data.roomId) || []);
-            if(socketIdsInRoom && socketIdsInRoom.length){
-                socketIdsInRoom.forEach((socketId)=>{
-                    if(socketId === data.socketID.remote){
+            if (socketIdsInRoom && socketIdsInRoom.length) {
+                socketIdsInRoom.forEach((socketId) => {
+                    if (socketId === data.socketID.remote) {
                         peers.to(socketId).emit('offer', {
                             sdp: data.payload.sdp,
                             socketID: data.socketID.local,
@@ -128,9 +128,9 @@ function initializePeers(server) {
         /* Send Answer data to Room*/
         socket.on('answer', (data) => {
             const socketIdsInRoom = Array.from(peers.adapter.rooms.get(data.roomId) || []);
-            if(socketIdsInRoom && socketIdsInRoom.length){
-                socketIdsInRoom.forEach((socketId)=>{
-                    if(socketId === data.socketID.remote){
+            if (socketIdsInRoom && socketIdsInRoom.length) {
+                socketIdsInRoom.forEach((socketId) => {
+                    if (socketId === data.socketID.remote) {
                         peers.to(socketId).emit('answer', {
                             sdp: data.payload.sdp,
                             socketID: data.socketID.local
@@ -154,9 +154,9 @@ function initializePeers(server) {
                         console.log(`There is No socket Id to the user ${data?.userId}`)
                     } else {
                         peers.to(data?.roomId).emit('muted', {
-                            userId : parseInt(data?.userId),
-                            socketID : response[0].socketId,
-                            isMute : data?.isMute 
+                            userId: parseInt(data?.userId),
+                            socketID: response[0].socketId,
+                            isMute: data?.isMute
                         })
                     }
                 }
@@ -217,19 +217,31 @@ function initializePeers(server) {
             });
         })
 
+        socket.on('eventStart', async (data) => {
+            try {
+                console.log('eventStart roomId', data.roomId);
+                if (data.roomId && data.userId) {
+                    addTempSong(data);
+                }
+                peers.emit('event-Start', {
+                    bytes: data.song
+                });
+            } catch (error) {
+                console.error('Error in eventStart:', error);
+            }
+        });
 
-        /* To stream song to the Group */
-        socket.on('eventStart', (data) => {
-            peers.emit('event-Start', {
-                bytes: data
-            })
-        })
-
-        /* To notify song streaming done */
-        socket.on('eventEnd', () => {
-            console.log('eventEndreceived=======================>')
-            peers.emit('event-End', {})
-        })
+        socket.on('eventEnd', async (data) => {
+            try {
+                console.log('eventEnd roomId', data.roomId);
+                if (data.roomId && data.userId) {
+                    addFullSong(data);
+                }
+                peers.emit('event-End', { userId: data.userId });
+            } catch (error) {
+                console.error('Error in eventEnd:', error);
+            }
+        });
 
         /*Group destination*/
         socket.on('destination', (data) => {
@@ -268,6 +280,21 @@ function initializePeers(server) {
             })
         })
 
+        socket.on('playPause', async (data) => {
+            try {
+                peers.emit('play-pause', {});
+            } catch (error) {
+                console.error('Error in playPause:', error);
+            }
+        });
+
+        socket.on('onSeek', async (data) => {
+            try {
+                peers.emit('seek-listen', data);
+            } catch (error) {
+                console.error('Error in onSeek:', error);
+            }
+        });
 
         const broadcast = () => {
             peers.emit('joined-peers', {})
@@ -275,26 +302,69 @@ function initializePeers(server) {
         broadcast()
 
         const disconnectedPeer = (socketID) => {
-            peers.emit('peer-disconnected', {socketID})
+            peers.emit('peer-disconnected', { socketID })
         }
-       
-      
+
+
         /* To check receiving event */
-        // socket.onAny((eventName, ...args) => {
-        //     console.log('Event Called From client---------->' , eventName);
-        //     //console.log('values', args); 
-        //   });
+        socket.onAny((eventName, ...args) => {
+            console.log('Event Called From client---------->', eventName);
+            //console.log('values', args); 
+        });
 
 
         /* To check emitting events*/
         socket.onAnyOutgoing((eventName, ...args) => {
-            console.log('Event Emitted From server =============>' , eventName);
-           // console.log('values', args); 
-          });
+            console.log('Event Emitted From server =============>', eventName);
+            // console.log('values', args); 
+        });
 
 
     })
 }
+
+const addTempSong = async (req) => {
+    try {
+    const song = JSON.stringify(req.song);
+    const addSongQuery = `INSERT INTO temp_room_song (room_id, user_id, song) VALUES (?, ?, ?)`;
+    const addSongParams = [req.roomId, req.userId, song];
+    await queryRunner(addSongQuery, addSongParams);
+} catch (error) {
+    console.error('Error in addTempSong:', error);
+    return false;
+}
+};
+
+const addFullSong = async (req) => {
+    try {
+        const tempSongQuery = `SELECT * FROM temp_room_song WHERE room_id = ? AND user_id = ? ORDER BY created_on ASC`;
+        const tempSongParams = [req.roomId, req.userId];
+        const response = await queryRunner(tempSongQuery, tempSongParams);
+        if (response.isError || !response.data.length) {
+            console.error('No data found in temp_room_song');
+            return;
+        }        
+        const receivedSongBytes = response.data.map(data => Buffer.from(JSON.parse(data.song), 'base64'));
+        const fullSong = JSON.stringify(Buffer.concat(receivedSongBytes));
+
+        const deleteSongQuery = `DELETE FROM room_song WHERE room_id = ?`;
+        const deleteParams = [req.roomId];
+        await queryRunner(deleteSongQuery, deleteParams);
+
+        const songQuery = `INSERT INTO room_song (room_id, user_id, song) VALUES (?, ?, ?)`;
+        const songParams = [req.roomId, req.userId, fullSong];
+        await queryRunner(songQuery, songParams);
+
+        const deleteTempSongQuery = `DELETE FROM temp_room_song WHERE room_id = ?`;
+        const deleteTempParams = [req.roomId];
+        await queryRunner(deleteTempSongQuery, deleteTempParams);
+       
+        console.log('addFullSong successful');
+    } catch (error) {
+        console.error('Error in addFullSong:', error);
+        return false;
+    }
+};
 
 module.exports = {
     initializePeers: initializePeers,

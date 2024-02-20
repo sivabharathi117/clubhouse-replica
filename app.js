@@ -14,6 +14,10 @@ app.use(express.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use('/api', router);
 
+app.get('/', (req, res) => {
+  res.send('Hello Developer');
+});
+
 const server = app.listen(port, () => {
   console.log(`Server is running on port ${port}`);
 });
